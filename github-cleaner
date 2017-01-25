@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+import click
+from github import Github
+from colorama import Fore
+
+def should_delete(comment):
+    raise NotImplementedError
+
+@click.group()
+@click.option('--token', envvar='GITHUB_TOKEN')
+def cli(token):
+    if not token:
+        raise click.ClickException('Please provide env variable `GITHUB_TOKEN`')
+    cli.token = token
+
+@cli.command()
+@click.option('--name', help='Name of repository')
+def clean_pulls(name):
+    """Clean comments of your pull requests for given repository"""
+    g = Github(cli.token)
+    my_id = g.get_user().id
+    for pull in [p for p in g.get_repo(name).get_pulls() if p.user.id == my_id]:
+        click.echo('Cleaning {red}{title} {reset}- {green}{url}{reset}'.format(
+            red=Fore.RED, green=Fore.GREEN, reset=Fore.RESET,
+            title=pull.title, url=pull.html_url)
+        )
+        counter = 0
+        for comment in filter(should_delete, pull.get_issue_comments()):
+            comment.delete()
+            counter +=1
+        click.echo('Delete {counter} comments.'.format(counter=counter))
+
+@cli.command()
+def list_repos():
+    """Show list of your repos."""
+    g = Github(cli.token)
+    for repo in g.get_user().get_repos():
+        click.echo(repo.name)
+
+if __name__ == '__main__':
+    cli()

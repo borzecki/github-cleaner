@@ -17,6 +17,9 @@ def cli(token):
 @click.option('--name', help='Name of repository')
 def clean_pulls(name):
     """Clean comments of your pull requests for given repository"""
+    if not name:
+        raise click.ClickException('Provide repository name')
+
     g = Github(cli.token)
     my_id = g.get_user().id
     for pull in [p for p in g.get_repo(name).get_pulls() if p.user.id == my_id]:
